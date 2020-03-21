@@ -4,15 +4,18 @@ const formSearch = document.querySelector('.form-search'),
  dropdownCitiesFrom = document.querySelector('.dropdown__cities-from'),
  inputCitiesTo = document.querySelector('.input__cities-to'),
  dropdownCitiesTo = document.querySelector('.dropdown__cities-to'),
- inputDateDepart = document.querySelector('.input__date-depart');
+ inputDateDepart = document.querySelector('.input__date-depart'),
+ cheapestTicket = document.getElementById('cheapest-ticket'),
+ otherCheapTickets = document.getElementById('other-cheap-tickets');
 
-// База данных город
+// Данные
 const citiesApi = 'dataBase/cities.json',
  proxy = 'https://cors-anywhere.herokuapp.com/',
  API_KEY = 'a81e4fc4cc83ee6fa5bfb0b3a5bee2ac',
  calendar = 'http://min-prices.aviasales.ru/calendar_preload';
 
 let city = [];
+
 // Функции 
 
 const getData = (url, callback) => {
@@ -39,7 +42,7 @@ const showCity = (input, list) => {
     if(input.value !== '') {
         const filterCity = city.filter((item) => {
             const fixItem = item.name.toLowerCase();
-            return fixItem.includes(input.value.toLowerCase());
+            return fixItem.startsWith(input.value.toLowerCase());
         });
 
         filterCity.forEach((item) => {
@@ -59,12 +62,62 @@ const clickLiForm = (q,v) => {
     })
 };
 
+const createCard = () => {
+    const ticket = document.createElement('article')
+    ticket.classList.add('ticket');
+
+    let deep ='';
+    if(data) {
+        deep =`
+        <h3 class="agent">Aviakassa</h3>
+        <div class="ticket__wrapper">
+	        <div class="left-side">
+		        <a href="https://www.aviasales.ru/search/SVX2905KGD1" class="button button__buy">Купить
+                    за 19700₽</a>
+	        </div>
+	        <div class="right-side">
+		        <div class="block-left">
+			        <div class="city__from">Вылет из города
+				        <span class="city__name">Екатеринбург</span>
+			        </div>
+			        <div class="date">29 мая 2020 г.</div>
+		        </div>
+		        <div class="block-right">
+			        <div class="changes">Без пересадок</div>
+			        <div class="city__to">Город назначения:
+				        <span class="city__name">Калининград</span>
+			        </div>
+		        </div>
+	        </div>
+        </div>
+        `;
+    } else {
+        deep = '<h3>К сожалению на текущую дату билетов не нашлось</h3>';
+    }
+    ticket.insertAdjacentHTML('afterbegin', deep)
+
+    return ticket;
+};
+
+
 const renderCheapDay = (cheapTicket) => {
-    console.log(cheapTicket);
+   const ticket = createCard(cheapTicket[0]);
+   console.log(ticket);
 };
 
 const renderCheapYear = (cheapTickets) => {
-    console.log(cheapTickets);
+
+    cheapTickets.sort((a,b) => {
+        if(a.value > b.value) {
+            return 1;
+        }
+        if (a.value < b.value) {
+            return -1;
+        }
+        // a должно быть равным b
+        return 0;
+    });
+    console.log(cheapTickets)
 };
 
 const renderCheap = (data, date) => {
@@ -100,27 +153,38 @@ formSearch.addEventListener('submit', (event) => {
     });
     
     const formData = {
-        from: cityFrom.code,
-        to: cityTo.code,
+        from: cityFrom,
+        to: cityTo,
         when: inputDateDepart.value,
     };
 
-    const requestData = `?depart_date=${formData.when}&origin=${formData.from}&destination=${formData.to}&one_way=true`;
+    if(formData.from && formData.to){
+        const requestData = `?depart_date=${formData.when}&origin=${formData.from.code}&destination=${formData.to.code}&one_way=true`;
 
-    const requestData2 = '?depart_date=' + formData.when +
-        '&origin=' + formData.from +
-        '&destination=' + formData.to +
-        '&one_way=true';
-
-    getData(calendar + requestData, (data) => {
-        renderCheap(data, formData.when);
-    });
-    
+        getData(calendar + requestData, (data) => {
+            renderCheap(data, formData.when);
+        });
+    }else {
+        alert('Введите корректное название города!')
+    }
 });
 
 
 // Вызовы функции
-getData(citiesApi,data => city = JSON.parse(data).filter(item => item.name));
+getData(citiesApi, (data) => {
+    city = JSON.parse(data).filter(item => item.name);
+
+    city.sort((a,b) => {
+        if(a.name > b.name) {
+            return 1;
+        }
+        if (a.name < b.name) {
+            return -1;
+        }
+        // a должно быть равным b
+        return 0;
+    });
+});
 
 // getData(proxy + calendar + 
 //     '' + API_KEY, (data) => {
